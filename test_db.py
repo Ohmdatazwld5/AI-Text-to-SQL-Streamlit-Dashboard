@@ -1,12 +1,13 @@
 import sqlite3
-from config import DB_PATH, ensure_db
+from config import DB_PATH
 
-ensure_db()
+print("DB Path:", DB_PATH)
+print("Exists:", DB_PATH.exists(), "Size:", DB_PATH.stat().st_size if DB_PATH.exists() else "N/A")
 
 conn = sqlite3.connect(DB_PATH)
-cursor = conn.cursor()
-cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-tables = cursor.fetchall()
-print("Tables in DB:", tables)
+cur = conn.cursor()
+cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+print("Tables:", cur.fetchall())
 conn.close()
+
 
