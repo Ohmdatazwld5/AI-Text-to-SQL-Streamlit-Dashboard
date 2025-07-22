@@ -3,13 +3,15 @@ import re
 import sqlite3
 from dotenv import load_dotenv
 from groq import Groq
+from config import DB_PATH, ensure_db
 
 load_dotenv()
+ensure_db()
+
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# ----- schema helper (same as earlier, if not already in file) -----
-def get_schema_text(db_path=r"d:\AgenticRAG\chinook.db"):
-    conn = sqlite3.connect(db_path)
+def get_schema_text():
+    conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = [t[0] for t in cur.fetchall()]
@@ -21,18 +23,14 @@ def get_schema_text(db_path=r"d:\AgenticRAG\chinook.db"):
     conn.close()
     return "\n".join(parts)
 
-# ----- extract clean SQL from LLM output -----
 def _extract_sql(text: str) -> str:
-    # Grab first fenced block ```sql ... ``` or ``` ... ```
     m = re.search(r"```(?:sql)?(.*?)```", text, flags=re.I | re.S)
     if m:
         candidate = m.group(1)
     else:
-        # Fallback: from first SELECT or WITH onward
         m2 = re.search(r"(?is)\b(select|with)\b.*", text)
         candidate = text[m2.start():] if m2 else text
 
-    # Drop comment lines & stray backticks
     lines = []
     for line in candidate.splitlines():
         s = line.strip()
@@ -41,19 +39,16 @@ def _extract_sql(text: str) -> str:
         lines.append(line)
     sql = "\n".join(lines).strip()
 
-    # Keep only up to first semicolon if multiple statements
     semi = sql.find(";")
     if semi != -1:
         sql = sql[:semi+1]
-
-    # Ensure ends with ;
     if not sql.endswith(";"):
         sql += ";"
 
     return sql.strip()
 
-def natural_to_sql(user_query: str, db_path=r"d:\AgenticRAG\chinook.db") -> str:
-    schema_text = get_schema_text(db_path=db_path)
+def natural_to_sql(user_query: str) -> str:
+    schema_text = get_schema_text()
     prompt = f"""
 You are an expert SQL generator for the SQLite Chinook database.
 Only use these tables/columns:
@@ -70,7 +65,7 @@ Return ONLY executable SQL. No prose. No markdown. One statement.
         max_tokens=300,
     )
     raw = resp.choices[0].message.content.strip()
-    clean = _extract_sql(raw)
-    return clean
+    return _extract_sql(raw)
+
 
 
