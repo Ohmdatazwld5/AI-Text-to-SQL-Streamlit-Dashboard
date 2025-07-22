@@ -1,3 +1,5 @@
+## AI Text-to-SQL Streamlit Dashboard
+
 An AI-powered Text-to-SQL dashboard that converts natural language queries into SQL commands, executes them on the Chinook database, and visualizes results using dynamic charts.
 
 ## 🚀 Features
