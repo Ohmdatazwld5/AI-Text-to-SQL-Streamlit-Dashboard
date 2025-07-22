@@ -13,6 +13,7 @@ __pycache__/
 # SQLite databases
 *.sqlite
 *.sqlite3
+!chinook.db   # <-- allow this file
 
 # Environment files
 .env
